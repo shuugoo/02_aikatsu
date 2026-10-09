@@ -814,18 +814,18 @@ function render() {
 
 
 /* =========================================================
-   所持率表示更新
+   所持率の集計対象カード
 ========================================================= */
 
-function updateStats() {
+/*
+  所持フィルターに関係なく、
+  タブに属する全カードを返す。
 
-  const activeTab =
-    getActiveTab();
+  画面上部の所持率・X共有・画像保存の
+  所持率はすべてこれを基準に計算する。
+*/
 
-  /*
-    所持フィルターに関係なく、
-    現在のタブに属する全カードを集計する。
-  */
+function getStatsCardsForTab(activeTab) {
 
   let allCards =
     getNormalCards();
@@ -869,7 +869,22 @@ function updateStats() {
     ];
   }
 
+  return allCards;
+}
+
+
+/* =========================================================
+   所持率表示更新
+========================================================= */
+
+function updateStats() {
+
   // 絞り込み前の全カードを基準に集計
+  const allCards =
+    getStatsCardsForTab(
+      getActiveTab()
+    );
+
   const total =
     allCards.length;
 
@@ -1214,51 +1229,11 @@ function shareToX() {
   const activeTab =
     getActiveTab();
 
-  /*
-    所持フィルターに関係なく、
-    現在のタブに属する全カードを基準に
-    共有する所持率を計算する。
-  */
-
-  let allCards =
-    getNormalCards();
-
-  if (activeTab !== "all") {
-
-    allCards =
-      allCards.filter(card => {
-
-        return String(card.series) ===
-          String(activeTab);
-
-      });
-  }
-
-  if (showParallel) {
-
-    const parallelCards =
-      CARDS.filter(card => {
-
-        if (card.parallel !== true) {
-          return false;
-        }
-
-        const baseId =
-          getParallelBaseId(card);
-
-        return allCards.some(
-          normalCard => normalCard.id === baseId
-        );
-      });
-
-    allCards = [
-      ...allCards,
-      ...parallelCards
-    ];
-  }
-
+  // 所持フィルターに関係なく、タブ全体の所持率を共有する
   const percentage =
-    getPercentage(allCards);
+    getPercentage(
+      getStatsCardsForTab(activeTab)
+    );
 
   const tabLabel =
     activeTab === "all"
@@ -2253,8 +2228,14 @@ async function saveCollectionImage() {
       tabWidth +
       24;
 
+    // カード一覧は絞り込み後、所持率は絞り込み前のタブ全体で計算
+    const statsCards =
+      getStatsCardsForTab(
+        activeTab
+      );
+
     ctx.fillText(
-      `所持：${getOwnedCount(cards)} / ${cards.length}枚（${getPercentage(cards)}%）`,
+      `所持：${getOwnedCount(statsCards)} / ${statsCards.length}枚（${getPercentage(statsCards)}%）`,
       ownedX,
       58
     );
